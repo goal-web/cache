@@ -1,4 +1,11 @@
+github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/goal-web/contracts v0.0.0-20220120002635-287c7ed72d25/go.mod h1:lKHynU2Kgk6xyxL4afOJM4TO1kSa3RrCJ2bm5RtFMBw=
 github.com/goal-web/contracts v0.0.0-20220120093117-be8f72613bff h1:icWPUCgywE8+1zYemJ3t5mVHQBDVVprhVdhaULkrx9E=
 github.com/goal-web/contracts v0.0.0-20220120093117-be8f72613bff/go.mod h1:lKHynU2Kgk6xyxL4afOJM4TO1kSa3RrCJ2bm5RtFMBw=
 github.com/goal-web/supports v0.0.0-20220120125805-772978390d53 h1:9kZEpTALBs8xHWTJ8OkUthR23URN5o0PgxDwnxY9z0E=
 github.com/goal-web/supports v0.0.0-20220120125805-772978390d53/go.mod h1:F4to2eJ5J8Wasj+iC2Ks20YQChPuY5A6XyvKkvcxPYA=
+github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
+github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
