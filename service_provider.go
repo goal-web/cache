@@ -27,7 +27,7 @@ func (this ServiceProvider) Register(container contracts.Application) {
 			exceptionHandler: handler,
 			stores:           make(map[string]contracts.CacheStore),
 			drivers: map[string]contracts.CacheStoreProvider{
-				"ram": drivers.NewRam,
+				"memory": drivers.NewMemory,
 			},
 		}
 
