@@ -26,7 +26,9 @@ func (this ServiceProvider) Register(container contracts.Application) {
 			config:           config.Get("cache").(Config),
 			exceptionHandler: handler,
 			stores:           make(map[string]contracts.CacheStore),
-			drivers:          make(map[string]contracts.CacheStoreProvider),
+			drivers: map[string]contracts.CacheStoreProvider{
+				"ram": drivers.NewRam,
+			},
 		}
 
 		factory.Extend("redis", func(cacheConfig contracts.Fields) contracts.CacheStore {
