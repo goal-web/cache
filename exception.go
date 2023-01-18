@@ -7,10 +7,10 @@ type DriverException struct {
 	fields contracts.Fields
 }
 
-func (this DriverException) Error() string {
-	return this.error.Error()
+func (exception DriverException) Error() string {
+	return exception.error.Error()
 }
 
-func (this DriverException) Fields() contracts.Fields {
-	return this.fields
+func (exception DriverException) Fields() contracts.Fields {
+	return exception.fields
 }

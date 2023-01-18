@@ -17,41 +17,41 @@ type RedisStore struct {
 	prefix string
 }
 
-func (this *RedisStore) Get(key string) interface{} {
-	result, _ := this.redis.Get(this.getKey(key))
+func (store *RedisStore) Get(key string) interface{} {
+	result, _ := store.redis.Get(store.getKey(key))
 	return result
 }
 
-func (this *RedisStore) Many(keys []string) []interface{} {
-	results, _ := this.redis.MGet(this.getKeys(keys)...)
+func (store *RedisStore) Many(keys []string) []interface{} {
+	results, _ := store.redis.MGet(store.getKeys(keys)...)
 	return results
 }
 
-func (this *RedisStore) Put(key string, value interface{}, seconds time.Duration) error {
-	_, err := this.redis.Set(this.getKey(key), value, seconds)
+func (store *RedisStore) Put(key string, value interface{}, seconds time.Duration) error {
+	_, err := store.redis.Set(store.getKey(key), value, seconds)
 	return err
 }
 
-func (this *RedisStore) Add(key string, value interface{}, ttls ...time.Duration) bool {
+func (store *RedisStore) Add(key string, value interface{}, ttls ...time.Duration) bool {
 	var ttl time.Duration
 	if len(ttls) > 0 {
 		ttl = ttls[0]
 	} else {
 		ttl = time.Second * 60 * 60 // default 1 hour
 	}
-	result, _ := this.redis.SetNX(this.getKey(key), value, ttl)
+	result, _ := store.redis.SetNX(store.getKey(key), value, ttl)
 
 	return result
 }
 
-func (this *RedisStore) Pull(key string, defaultValue ...interface{}) interface{} {
-	key = this.getKey(key)
-	result, err := this.redis.GetDel(key)
+func (store *RedisStore) Pull(key string, defaultValue ...interface{}) interface{} {
+	key = store.getKey(key)
+	result, err := store.redis.GetDel(key)
 
 	if err != nil {
-		result, err = this.redis.Get(key)
+		result, err = store.redis.Get(key)
 		if result != "" {
-			_, _ = this.redis.Del(key)
+			_, _ = store.redis.Del(key)
 		}
 	}
 
@@ -62,74 +62,74 @@ func (this *RedisStore) Pull(key string, defaultValue ...interface{}) interface{
 	return result
 }
 
-func (this *RedisStore) PutMany(values map[string]interface{}, seconds time.Duration) error {
+func (store *RedisStore) PutMany(values map[string]interface{}, seconds time.Duration) error {
 	data := make(map[string]interface{})
 	for key, value := range values {
-		data[this.getKey(key)] = value
+		data[store.getKey(key)] = value
 	}
-	_, err := this.redis.MSet(data)
+	_, err := store.redis.MSet(data)
 
 	for key, _ := range data {
-		_, _ = this.redis.Expire(key, seconds)
+		_, _ = store.redis.Expire(key, seconds)
 	}
 
 	return err
 }
 
-func (this *RedisStore) Increment(key string, value ...int64) (int64, error) {
-	key = this.getKey(key)
+func (store *RedisStore) Increment(key string, value ...int64) (int64, error) {
+	key = store.getKey(key)
 	if len(value) > 0 {
-		return this.redis.IncrBy(key, value[0])
+		return store.redis.IncrBy(key, value[0])
 	}
-	return this.redis.Incr(key)
+	return store.redis.Incr(key)
 }
 
-func (this *RedisStore) Decrement(key string, value ...int64) (int64, error) {
-	key = this.getKey(key)
+func (store *RedisStore) Decrement(key string, value ...int64) (int64, error) {
+	key = store.getKey(key)
 	if len(value) > 0 {
-		return this.redis.DecrBy(key, value[0])
+		return store.redis.DecrBy(key, value[0])
 	}
-	return this.redis.Decr(key)
+	return store.redis.Decr(key)
 }
 
-func (this *RedisStore) Forever(key string, value interface{}) error {
-	_, err := this.redis.Set(this.getKey(key), value, -1)
+func (store *RedisStore) Forever(key string, value interface{}) error {
+	_, err := store.redis.Set(store.getKey(key), value, -1)
 	return err
 }
 
-func (this *RedisStore) Forget(key string) error {
-	_, err := this.redis.Del(this.getKey(key))
+func (store *RedisStore) Forget(key string) error {
+	_, err := store.redis.Del(store.getKey(key))
 	return err
 }
 
-func (this *RedisStore) Flush() error {
-	_, err := this.redis.FlushDB()
+func (store *RedisStore) Flush() error {
+	_, err := store.redis.FlushDB()
 	return err
 }
 
-func (this *RedisStore) GetPrefix() string {
-	return this.prefix
+func (store *RedisStore) GetPrefix() string {
+	return store.prefix
 }
 
-func (this *RedisStore) getKey(key string) string {
-	return this.prefix + key
+func (store *RedisStore) getKey(key string) string {
+	return store.prefix + key
 }
 
-func (this *RedisStore) getKeys(keys []string) []string {
+func (store *RedisStore) getKeys(keys []string) []string {
 	for index, key := range keys {
-		keys[index] = this.getKey(key)
+		keys[index] = store.getKey(key)
 	}
 	return keys
 }
 
-func (this *RedisStore) Remember(key string, ttl time.Duration, provider contracts.InstanceProvider) interface{} {
-	result := this.Get(key)
+func (store *RedisStore) Remember(key string, ttl time.Duration, provider contracts.InstanceProvider) interface{} {
+	result := store.Get(key)
 	if result == nil || result == "" {
-		_ = this.Put(key, provider(), ttl)
+		_ = store.Put(key, provider(), ttl)
 	}
 	return result
 }
 
-func (this *RedisStore) RememberForever(key string, provider contracts.InstanceProvider) interface{} {
-	return this.Remember(key, -1, provider)
+func (store *RedisStore) RememberForever(key string, provider contracts.InstanceProvider) interface{} {
+	return store.Remember(key, -1, provider)
 }

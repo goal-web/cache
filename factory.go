@@ -13,37 +13,37 @@ type Factory struct {
 	drivers          map[string]contracts.CacheStoreProvider
 }
 
-func (this *Factory) getName(names ...string) string {
+func (factory *Factory) getName(names ...string) string {
 	if len(names) > 0 {
 		return names[0]
 	}
-	return this.config.Default
+	return factory.config.Default
 
 }
 
-func (this Factory) getConfig(name string) contracts.Fields {
-	return this.config.Stores[name]
+func (factory Factory) getConfig(name string) contracts.Fields {
+	return factory.config.Stores[name]
 }
 
-func (this *Factory) Store(names ...string) contracts.CacheStore {
-	name := this.getName(names...)
-	if cacheStore, existsStore := this.stores[name]; existsStore {
+func (factory *Factory) Store(names ...string) contracts.CacheStore {
+	name := factory.getName(names...)
+	if cacheStore, existsStore := factory.stores[name]; existsStore {
 		return cacheStore
 	}
 
-	this.stores[name] = this.make(name)
+	factory.stores[name] = factory.make(name)
 
-	return this.stores[name]
+	return factory.stores[name]
 }
 
-func (this *Factory) Extend(driver string, cacheStoreProvider contracts.CacheStoreProvider) {
-	this.drivers[driver] = cacheStoreProvider
+func (factory *Factory) Extend(driver string, cacheStoreProvider contracts.CacheStoreProvider) {
+	factory.drivers[driver] = cacheStoreProvider
 }
 
-func (this *Factory) make(name string) contracts.CacheStore {
-	config := this.getConfig(name)
+func (factory *Factory) make(name string) contracts.CacheStore {
+	config := factory.getConfig(name)
 	driver := utils.GetStringField(config, "driver")
-	driveProvider, existsProvider := this.drivers[driver]
+	driveProvider, existsProvider := factory.drivers[driver]
 	if !existsProvider {
 		panic(DriverException{
 			fmt.Errorf("不支持的缓存驱动：%s", driver),

@@ -6,18 +6,22 @@ import (
 	"github.com/goal-web/supports/utils"
 )
 
-type ServiceProvider struct {
+type serviceProvider struct {
 }
 
-func (this ServiceProvider) Stop() {
+func NewService() contracts.ServiceProvider {
+	return serviceProvider{}
+}
+
+func (provider serviceProvider) Stop() {
 
 }
 
-func (this ServiceProvider) Start() error {
+func (provider serviceProvider) Start() error {
 	return nil
 }
 
-func (this ServiceProvider) Register(container contracts.Application) {
+func (provider serviceProvider) Register(container contracts.Application) {
 	container.Singleton("cache", func(
 		config contracts.Config,
 		redis contracts.RedisFactory,
