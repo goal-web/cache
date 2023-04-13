@@ -23,7 +23,7 @@ func NewMemory(config contracts.Fields) contracts.CacheStore {
 }
 
 type data struct {
-	value     interface{}
+	value     any
 	expiredAt time.Time
 	forever   bool
 }
@@ -35,7 +35,7 @@ type Memory struct {
 	prefix string
 }
 
-func (ram *Memory) Get(key string) interface{} {
+func (ram *Memory) Get(key string) any {
 	ram.mutex.RLock()
 	defer ram.mutex.RUnlock()
 	if item, ok := ram.data[key]; ok {
@@ -49,11 +49,11 @@ func (ram *Memory) Get(key string) interface{} {
 	return nil
 }
 
-func (ram *Memory) Many(keys []string) []interface{} {
+func (ram *Memory) Many(keys []string) []any {
 	ram.mutex.RLock()
 	defer ram.mutex.RUnlock()
 	var (
-		results = make([]interface{}, 0)
+		results = make([]any, 0)
 		now     = time.Now()
 	)
 	for _, key := range keys {
@@ -69,7 +69,7 @@ func (ram *Memory) Many(keys []string) []interface{} {
 	return results
 }
 
-func (ram *Memory) Put(key string, value interface{}, seconds time.Duration) error {
+func (ram *Memory) Put(key string, value any, seconds time.Duration) error {
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
 	ram.data[key] = data{
@@ -79,7 +79,7 @@ func (ram *Memory) Put(key string, value interface{}, seconds time.Duration) err
 	return nil
 }
 
-func (ram *Memory) Add(key string, value interface{}, ttl ...time.Duration) bool {
+func (ram *Memory) Add(key string, value any, ttl ...time.Duration) bool {
 	var item, exists = ram.data[key]
 	if exists && (item.forever || time.Now().Sub(item.expiredAt) > 0) { // 存在且没过期
 		return false
@@ -93,7 +93,7 @@ func (ram *Memory) Add(key string, value interface{}, ttl ...time.Duration) bool
 	return ram.Put(key, value, lifetime) == nil
 }
 
-func (ram *Memory) Pull(key string, defaultValue ...interface{}) interface{} {
+func (ram *Memory) Pull(key string, defaultValue ...any) any {
 	var item, exists = ram.data[key]
 	if !exists || (!item.forever && time.Now().Sub(item.expiredAt) < 0) { // 不存在或者(不是永久且已过期)
 		return utils.DefaultInterface(defaultValue)
@@ -104,7 +104,7 @@ func (ram *Memory) Pull(key string, defaultValue ...interface{}) interface{} {
 	return item.value
 }
 
-func (ram *Memory) PutMany(values map[string]interface{}, seconds time.Duration) error {
+func (ram *Memory) PutMany(values map[string]any, seconds time.Duration) error {
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
 	var now = time.Now()
@@ -125,7 +125,7 @@ func (ram *Memory) Increment(key string, value ...int64) (int64, error) {
 			expiredAt: time.Now().Add(ram.ttl),
 		}
 	}
-	var count = utils.ConvertToInt64(item, 0)
+	var count = utils.ToInt64(item, 0)
 	count += utils.DefaultInt64(value, 1)
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
@@ -146,7 +146,7 @@ func (ram *Memory) Decrement(key string, value ...int64) (int64, error) {
 			expiredAt: time.Now().Add(ram.ttl),
 		}
 	}
-	var count = utils.ConvertToInt64(item, 0)
+	var count = utils.ToInt64(item, 0)
 	count -= utils.DefaultInt64(value, 1)
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
@@ -159,7 +159,7 @@ func (ram *Memory) Decrement(key string, value ...int64) (int64, error) {
 	return count, nil
 }
 
-func (ram *Memory) Forever(key string, value interface{}) error {
+func (ram *Memory) Forever(key string, value any) error {
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
 	ram.data[key] = data{value: value, forever: true}
@@ -187,7 +187,7 @@ func (ram *Memory) GetPrefix() string {
 	return ram.prefix
 }
 
-func (ram *Memory) Remember(key string, ttl time.Duration, provider contracts.InstanceProvider) interface{} {
+func (ram *Memory) Remember(key string, ttl time.Duration, provider contracts.InstanceProvider[any]) any {
 	if value := ram.Get(key); value != nil {
 		return value
 	}
@@ -198,7 +198,7 @@ func (ram *Memory) Remember(key string, ttl time.Duration, provider contracts.In
 	return value
 }
 
-func (ram *Memory) RememberForever(key string, provider contracts.InstanceProvider) interface{} {
+func (ram *Memory) RememberForever(key string, provider contracts.InstanceProvider[any]) any {
 	if value := ram.Get(key); value != nil {
 		return value
 	}

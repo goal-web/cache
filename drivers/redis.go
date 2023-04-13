@@ -17,22 +17,22 @@ type RedisStore struct {
 	prefix string
 }
 
-func (store *RedisStore) Get(key string) interface{} {
+func (store *RedisStore) Get(key string) any {
 	result, _ := store.redis.Get(store.getKey(key))
 	return result
 }
 
-func (store *RedisStore) Many(keys []string) []interface{} {
+func (store *RedisStore) Many(keys []string) []any {
 	results, _ := store.redis.MGet(store.getKeys(keys)...)
 	return results
 }
 
-func (store *RedisStore) Put(key string, value interface{}, seconds time.Duration) error {
+func (store *RedisStore) Put(key string, value any, seconds time.Duration) error {
 	_, err := store.redis.Set(store.getKey(key), value, seconds)
 	return err
 }
 
-func (store *RedisStore) Add(key string, value interface{}, ttls ...time.Duration) bool {
+func (store *RedisStore) Add(key string, value any, ttls ...time.Duration) bool {
 	var ttl time.Duration
 	if len(ttls) > 0 {
 		ttl = ttls[0]
@@ -44,7 +44,7 @@ func (store *RedisStore) Add(key string, value interface{}, ttls ...time.Duratio
 	return result
 }
 
-func (store *RedisStore) Pull(key string, defaultValue ...interface{}) interface{} {
+func (store *RedisStore) Pull(key string, defaultValue ...any) any {
 	key = store.getKey(key)
 	result, err := store.redis.GetDel(key)
 
@@ -62,8 +62,8 @@ func (store *RedisStore) Pull(key string, defaultValue ...interface{}) interface
 	return result
 }
 
-func (store *RedisStore) PutMany(values map[string]interface{}, seconds time.Duration) error {
-	data := make(map[string]interface{})
+func (store *RedisStore) PutMany(values map[string]any, seconds time.Duration) error {
+	data := make(map[string]any)
 	for key, value := range values {
 		data[store.getKey(key)] = value
 	}
@@ -92,7 +92,7 @@ func (store *RedisStore) Decrement(key string, value ...int64) (int64, error) {
 	return store.redis.Decr(key)
 }
 
-func (store *RedisStore) Forever(key string, value interface{}) error {
+func (store *RedisStore) Forever(key string, value any) error {
 	_, err := store.redis.Set(store.getKey(key), value, -1)
 	return err
 }
@@ -122,7 +122,7 @@ func (store *RedisStore) getKeys(keys []string) []string {
 	return keys
 }
 
-func (store *RedisStore) Remember(key string, ttl time.Duration, provider contracts.InstanceProvider) interface{} {
+func (store *RedisStore) Remember(key string, ttl time.Duration, provider contracts.InstanceProvider[any]) any {
 	result := store.Get(key)
 	if result == nil || result == "" {
 		_ = store.Put(key, provider(), ttl)
@@ -130,6 +130,6 @@ func (store *RedisStore) Remember(key string, ttl time.Duration, provider contra
 	return result
 }
 
-func (store *RedisStore) RememberForever(key string, provider contracts.InstanceProvider) interface{} {
+func (store *RedisStore) RememberForever(key string, provider contracts.InstanceProvider[any]) any {
 	return store.Remember(key, -1, provider)
 }

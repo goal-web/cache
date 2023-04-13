@@ -21,7 +21,7 @@ func (factory *Factory) getName(names ...string) string {
 
 }
 
-func (factory Factory) getConfig(name string) contracts.Fields {
+func (factory *Factory) getConfig(name string) contracts.Fields {
 	return factory.config.Stores[name]
 }
 
@@ -45,10 +45,7 @@ func (factory *Factory) make(name string) contracts.CacheStore {
 	driver := utils.GetStringField(config, "driver")
 	driveProvider, existsProvider := factory.drivers[driver]
 	if !existsProvider {
-		panic(DriverException{
-			fmt.Errorf("不支持的缓存驱动：%s", driver),
-			config,
-		})
+		panic(DriverException{Err: fmt.Errorf("不支持的缓存驱动：%s", driver)})
 	}
 	return driveProvider(config)
 }
