@@ -63,13 +63,13 @@ func (store *RedisStore) Pull(key string, defaultValue ...any) any {
 }
 
 func (store *RedisStore) PutMany(values map[string]any, seconds time.Duration) error {
-	data := make(map[string]any)
+	fields := make(contracts.Fields)
 	for key, value := range values {
-		data[store.getKey(key)] = value
+		fields[store.getKey(key)] = value
 	}
-	_, err := store.redis.MSet(data)
+	_, err := store.redis.MSet(fields)
 
-	for key, _ := range data {
+	for key := range fields {
 		_, _ = store.redis.Expire(key, seconds)
 	}
 

@@ -39,7 +39,7 @@ func (ram *Memory) Get(key string) any {
 	ram.mutex.RLock()
 	defer ram.mutex.RUnlock()
 	if item, ok := ram.data[key]; ok {
-		if item.forever || time.Now().Sub(item.expiredAt) > 0 {
+		if item.forever || time.Since(item.expiredAt) > 0 {
 			return item.value
 		} else {
 			delete(ram.data, key)
@@ -81,7 +81,7 @@ func (ram *Memory) Put(key string, value any, seconds time.Duration) error {
 
 func (ram *Memory) Add(key string, value any, ttl ...time.Duration) bool {
 	var item, exists = ram.data[key]
-	if exists && (item.forever || time.Now().Sub(item.expiredAt) > 0) { // 存在且没过期
+	if exists && (item.forever || time.Since(item.expiredAt) > 0) { // 存在且没过期
 		return false
 	}
 	ram.mutex.Lock()
@@ -95,7 +95,7 @@ func (ram *Memory) Add(key string, value any, ttl ...time.Duration) bool {
 
 func (ram *Memory) Pull(key string, defaultValue ...any) any {
 	var item, exists = ram.data[key]
-	if !exists || (!item.forever && time.Now().Sub(item.expiredAt) < 0) { // 不存在或者(不是永久且已过期)
+	if !exists || (!item.forever && time.Since(item.expiredAt) < 0) { // 不存在或者(不是永久且已过期)
 		return utils.DefaultInterface(defaultValue)
 	}
 	ram.mutex.Lock()
