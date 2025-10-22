@@ -1,0 +1,26 @@
+# 文件缓存驱动配置示例
+# File Cache Driver Configuration Example
+
+[stores]
+  # 默认缓存存储
+  default = "file"
+  
+  # 文件缓存存储配置
+  [stores.file]
+    driver = "file"
+    path = "./storage/cache"  # 缓存文件存储路径
+    prefix = "app_"          # 缓存键前缀
+  
+  # 另一个文件缓存存储配置（用于不同用途）
+  [stores.temp]
+    driver = "file"
+    path = "./storage/temp_cache"  # 临时缓存路径
+    prefix = "temp_"               # 临时缓存前缀
+  
+  # 内存缓存存储配置（对比）
+  [stores.memory]
+    driver = "ram"
+    ttl = 86400  # 24小时，单位：秒
+    prefix = "mem_"
+
+

@@ -32,6 +32,7 @@ func (provider serviceProvider) Register(container contracts.Application) {
 			stores:           make(map[string]contracts.CacheStore),
 			drivers: map[string]contracts.CacheStoreProvider{
 				"memory": drivers.NewMemory,
+				"file":   drivers.NewFile,
 			},
 		}
 
