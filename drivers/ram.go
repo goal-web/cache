@@ -1,5 +1,3 @@
-// Package drivers contains cache store implementations.
-// 包 drivers 包含缓存存储实现。
 package drivers
 
 import (
@@ -15,13 +13,9 @@ import (
 )
 
 var (
-	// DataNotExistsErr represents an error when data does not exist.
-	// DataNotExistsErr 表示数据不存在时的错误。
 	DataNotExistsErr = errors.New("data does not exist")
 )
 
-// NewMemory creates a new in-memory cache instance.
-// NewMemory 创建新的内存缓存实例。
 func NewMemory(config contracts.Fields) contracts.CacheStore {
 	ttl := utils.GetIntField(config, "ttl", 24*int(time.Hour))
 	if ttl <= 0 {
@@ -40,55 +34,31 @@ func NewMemory(config contracts.Fields) contracts.CacheStore {
 	}
 }
 
-// data represents cached data with expiration information.
-// data 表示带过期信息的缓存数据。
 type data struct {
-	value     any       // value holds the cached value.
-	                     // value 保存缓存值。
-	expiredAt time.Time // expiredAt holds the expiration time.
-	                     // expiredAt 保存过期时间。
-	forever   bool      // forever indicates if the value never expires.
-	                     // forever 指示值是否永不过期。
-	createdAt time.Time // createdAt holds the creation time.
-	                     // createdAt 保存创建时间。
-	size      int64     // size holds the data size in bytes.
-	                     // size 保存数据大小（字节）。
+	value     any
+	expiredAt time.Time
+	forever   bool
+	createdAt time.Time
+	size      int64 // 数据大小（字节）
 }
 
-// memoryStats holds memory cache statistics.
-// memoryStats 保存内存缓存统计信息。
 type memoryStats struct {
-	hits      int64 // hits holds the number of cache hits.
-	                     // hits 保存缓存命中次数。
-	misses    int64 // misses holds the number of cache misses.
-	                     // misses 保存缓存未命中次数。
-	evictions int64 // evictions holds the number of expired items cleaned up.
-	                     // evictions 保存过期清理次数。
-	totalSize int64 // totalSize holds the total memory usage in bytes.
-	                     // totalSize 保存总内存使用量。
-	keyCount  int64 // keyCount holds the current number of keys.
-	                     // keyCount 保存当前键数量。
+	hits      int64 // 命中次数
+	misses    int64 // 未命中次数
+	evictions int64 // 过期清理次数
+	totalSize int64 // 总内存使用量
+	keyCount  int64 // 当前键数量
 }
 
-// Memory implements an in-memory cache store.
-// Memory 实现内存缓存存储。
 type Memory struct {
-	mutex     sync.RWMutex    // mutex provides thread-safe access to the memory cache.
-	                         // mutex 提供对内存缓存的线程安全访问。
-	data      map[string]data // data holds the cached data.
-	                         // data 保存缓存数据。
-	ttl       time.Duration   // ttl holds the default time-to-live for cached items.
-	                         // ttl 保存缓存项的默认生存时间。
-	prefix    string          // prefix holds the key prefix for this store.
-	                         // prefix 保存此存储的键前缀。
-	createdAt time.Time       // createdAt holds the time when the cache was created.
-	                         // createdAt 保存缓存创建时间。
-	stats     *memoryStats    // stats holds cache statistics.
-	                         // stats 保存缓存统计信息。
+	mutex     sync.RWMutex
+	data      map[string]data
+	ttl       time.Duration
+	prefix    string
+	createdAt time.Time
+	stats     *memoryStats
 }
 
-// Get retrieves a value from the cache by key.
-// Get 根据键从缓存中获取值。
 func (ram *Memory) Get(key string) any {
 	ram.mutex.RLock()
 	item, ok := ram.data[key]
@@ -99,11 +69,9 @@ func (ram *Memory) Get(key string) any {
 		return nil
 	}
 
-	// Check if expired.
-	// 检查是否过期。
+	// 检查是否过期
 	if !item.forever && time.Now().After(item.expiredAt) {
-		// Cleanup expired item asynchronously.
-		// 异步清理过期项。
+		// 异步清理过期项
 		go ram.cleanupExpired(key)
 		atomic.AddInt64(&ram.stats.misses, 1)
 		return nil
@@ -113,8 +81,6 @@ func (ram *Memory) Get(key string) any {
 	return item.value
 }
 
-// Many retrieves multiple values from the cache by keys.
-// Many 根据键列表从缓存中获取多个值。
 func (ram *Memory) Many(keys []string) []any {
 	if len(keys) == 0 {
 		return []any{}
@@ -130,8 +96,7 @@ func (ram *Memory) Many(keys []string) []any {
 				results[i] = item.value
 				atomic.AddInt64(&ram.stats.hits, 1)
 			} else {
-				// Cleanup expired item asynchronously.
-				// 异步清理过期项。
+				// 异步清理过期项
 				go ram.cleanupExpired(key)
 				atomic.AddInt64(&ram.stats.misses, 1)
 			}
@@ -144,22 +109,18 @@ func (ram *Memory) Many(keys []string) []any {
 	return results
 }
 
-// Put stores a value in the cache with an expiration time.
-// Put 将带过期时间的值存储在缓存中。
 func (ram *Memory) Put(key string, value any, seconds time.Duration) error {
 	if seconds <= 0 {
 		return fmt.Errorf("expiration time must be positive, got %v", seconds)
 	}
 
-	// Calculate data size (simplified estimation).
-	// 计算数据大小（简化估算）。
+	// 计算数据大小（简化估算）
 	size := ram.estimateSize(value)
 
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
 
-	// If key already exists, subtract old value size first.
-	// 如果键已存在，先减去旧值的大小。
+	// 如果键已存在，先减去旧值的大小
 	if oldItem, exists := ram.data[key]; exists {
 		atomic.AddInt64(&ram.stats.totalSize, -oldItem.size)
 	} else {
@@ -178,8 +139,6 @@ func (ram *Memory) Put(key string, value any, seconds time.Duration) error {
 	return nil
 }
 
-// Add adds a value to the cache with an expiration time if it doesn't exist.
-// Add 如果不存在则将带过期时间的值添加到缓存中。
 func (ram *Memory) Add(key string, value any, ttl ...time.Duration) bool {
 	lifetime := time.Hour
 	if len(ttl) > 0 && ttl[0] > 0 {
@@ -189,16 +148,14 @@ func (ram *Memory) Add(key string, value any, ttl ...time.Duration) bool {
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
 
-	// Check if key exists and is not expired.
-	// 检查键是否存在且未过期。
+	// 检查键是否存在且未过期
 	if item, exists := ram.data[key]; exists {
 		if item.forever || time.Now().Before(item.expiredAt) {
 			return false
 		}
 	}
 
-	// Set new value.
-	// 设置新值。
+	// 设置新值
 	size := ram.estimateSize(value)
 	ram.data[key] = data{
 		value:     value,
@@ -213,8 +170,6 @@ func (ram *Memory) Add(key string, value any, ttl ...time.Duration) bool {
 	return true
 }
 
-// Pull retrieves and removes a value from the cache by key.
-// Pull 根据键从缓存中获取并删除值。
 func (ram *Memory) Pull(key string, defaultValue ...any) any {
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
@@ -224,8 +179,7 @@ func (ram *Memory) Pull(key string, defaultValue ...any) any {
 		return utils.DefaultInterface(defaultValue)
 	}
 
-	// Check if expired.
-	// 检查是否过期。
+	// 检查是否过期
 	if !item.forever && time.Now().After(item.expiredAt) {
 		delete(ram.data, key)
 		atomic.AddInt64(&ram.stats.keyCount, -1)
@@ -233,8 +187,7 @@ func (ram *Memory) Pull(key string, defaultValue ...any) any {
 		return utils.DefaultInterface(defaultValue)
 	}
 
-	// Delete and return.
-	// 删除并返回。
+	// 删除并返回
 	delete(ram.data, key)
 	atomic.AddInt64(&ram.stats.keyCount, -1)
 	atomic.AddInt64(&ram.stats.totalSize, -item.size)
@@ -243,8 +196,6 @@ func (ram *Memory) Pull(key string, defaultValue ...any) any {
 	return item.value
 }
 
-// PutMany stores multiple values in the cache with an expiration time.
-// PutMany 将多个带过期时间的值存储在缓存中。
 func (ram *Memory) PutMany(values map[string]any, seconds time.Duration) error {
 	if len(values) == 0 {
 		return nil
@@ -263,8 +214,7 @@ func (ram *Memory) PutMany(values map[string]any, seconds time.Duration) error {
 	for key, value := range values {
 		size := ram.estimateSize(value)
 
-		// If key already exists, subtract old value size first.
-		// 如果键已存在，先减去旧值的大小。
+		// 如果键已存在，先减去旧值的大小
 		if oldItem, exists := ram.data[key]; exists {
 			atomic.AddInt64(&ram.stats.totalSize, -oldItem.size)
 		} else {
@@ -286,8 +236,6 @@ func (ram *Memory) PutMany(values map[string]any, seconds time.Duration) error {
 	return nil
 }
 
-// Increment increments the value of the given key by the given value.
-// Increment 按给定值增加指定键的值。
 func (ram *Memory) Increment(key string, value ...int64) (int64, error) {
 	increment := int64(1)
 	if len(value) > 0 {
@@ -299,8 +247,7 @@ func (ram *Memory) Increment(key string, value ...int64) (int64, error) {
 
 	item, exists := ram.data[key]
 	if !exists {
-		// Create new counter.
-		// 创建新计数器。
+		// 创建新计数器
 		newItem := data{
 			value:     increment,
 			expiredAt: time.Now().Add(ram.ttl),
@@ -314,15 +261,13 @@ func (ram *Memory) Increment(key string, value ...int64) (int64, error) {
 		return increment, nil
 	}
 
-	// Check if expired.
-	// 检查是否过期。
+	// 检查是否过期
 	if !item.forever && time.Now().After(item.expiredAt) {
 		item.value = increment
 		item.expiredAt = time.Now().Add(ram.ttl)
 		item.createdAt = time.Now()
 	} else {
-		// Increment existing value.
-		// 递增现有值。
+		// 递增现有值
 		currentValue := utils.ToInt64(item.value, 0)
 		item.value = currentValue + increment
 		item.expiredAt = time.Now().Add(ram.ttl)
@@ -332,8 +277,6 @@ func (ram *Memory) Increment(key string, value ...int64) (int64, error) {
 	return utils.ToInt64(item.value, 0), nil
 }
 
-// Decrement decrements the value of the given key by the given value.
-// Decrement 按给定值减少指定键的值。
 func (ram *Memory) Decrement(key string, value ...int64) (int64, error) {
 	decrement := int64(1)
 	if len(value) > 0 {
@@ -345,8 +288,7 @@ func (ram *Memory) Decrement(key string, value ...int64) (int64, error) {
 
 	item, exists := ram.data[key]
 	if !exists {
-		// Create new counter.
-		// 创建新计数器。
+		// 创建新计数器
 		newItem := data{
 			value:     -decrement,
 			expiredAt: time.Now().Add(ram.ttl),
@@ -360,15 +302,13 @@ func (ram *Memory) Decrement(key string, value ...int64) (int64, error) {
 		return -decrement, nil
 	}
 
-	// Check if expired.
-	// 检查是否过期。
+	// 检查是否过期
 	if !item.forever && time.Now().After(item.expiredAt) {
 		item.value = -decrement
 		item.expiredAt = time.Now().Add(ram.ttl)
 		item.createdAt = time.Now()
 	} else {
-		// Decrement existing value.
-		// 递减现有值。
+		// 递减现有值
 		currentValue := utils.ToInt64(item.value, 0)
 		item.value = currentValue - decrement
 		item.expiredAt = time.Now().Add(ram.ttl)
@@ -378,16 +318,13 @@ func (ram *Memory) Decrement(key string, value ...int64) (int64, error) {
 	return utils.ToInt64(item.value, 0), nil
 }
 
-// Forever stores a value in the cache without expiration time.
-// Forever 将无过期时间的值存储在缓存中。
 func (ram *Memory) Forever(key string, value any) error {
 	size := ram.estimateSize(value)
 
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
 
-	// If key already exists, subtract old value size first.
-	// 如果键已存在，先减去旧值的大小。
+	// 如果键已存在，先减去旧值的大小
 	if oldItem, exists := ram.data[key]; exists {
 		atomic.AddInt64(&ram.stats.totalSize, -oldItem.size)
 	} else {
@@ -405,8 +342,6 @@ func (ram *Memory) Forever(key string, value any) error {
 	return nil
 }
 
-// Forget removes a value from the cache by key.
-// Forget 根据键从缓存中删除值。
 func (ram *Memory) Forget(key string) error {
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
@@ -423,8 +358,6 @@ func (ram *Memory) Forget(key string) error {
 	return nil
 }
 
-// Flush flushes all values from the cache.
-// Flush 清空缓存中的所有值。
 func (ram *Memory) Flush() error {
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
@@ -436,17 +369,12 @@ func (ram *Memory) Flush() error {
 	return nil
 }
 
-// GetPrefix returns the cache key prefix.
-// GetPrefix 返回缓存键前缀。
 func (ram *Memory) GetPrefix() string {
 	return ram.prefix
 }
 
-// Remember retrieves a value from the cache or executes the provider to set it.
-// Remember 从缓存中获取值，如果不存在则执行提供者设置值。
 func (ram *Memory) Remember(key string, ttl time.Duration, provider contracts.InstanceProvider[any]) any {
-	// Improvement: Parameter validation.
-	// 改进：参数验证。
+	// 改进：参数验证
 	if provider == nil {
 		return nil
 	}
@@ -465,11 +393,8 @@ func (ram *Memory) Remember(key string, ttl time.Duration, provider contracts.In
 	return value
 }
 
-// RememberForever retrieves a value from the cache or executes the provider to set it without expiration.
-// RememberForever 从缓存中获取值，如果不存在则执行提供者设置值，无过期时间。
 func (ram *Memory) RememberForever(key string, provider contracts.InstanceProvider[any]) any {
-	// Improvement: Parameter validation.
-	// 改进：参数验证。
+	// 改进：参数验证
 	if provider == nil {
 		return nil
 	}
@@ -488,11 +413,9 @@ func (ram *Memory) RememberForever(key string, provider contracts.InstanceProvid
 	return value
 }
 
-// New methods: Memory management and statistics.
-// 新增方法：内存管理和统计。
+// 新增方法：内存管理和统计
 
-// GetStats retrieves cache statistics information.
-// GetStats 获取缓存统计信息。
+// GetStats 获取缓存统计信息
 func (ram *Memory) GetStats() map[string]any {
 	return map[string]any{
 		"hits":         atomic.LoadInt64(&ram.stats.hits),
@@ -506,8 +429,7 @@ func (ram *Memory) GetStats() map[string]any {
 	}
 }
 
-// getHitRate retrieves the cache hit rate.
-// getHitRate 获取缓存命中率。
+// GetHitRate 获取缓存命中率
 func (ram *Memory) getHitRate() float64 {
 	hits := atomic.LoadInt64(&ram.stats.hits)
 	misses := atomic.LoadInt64(&ram.stats.misses)
@@ -520,8 +442,7 @@ func (ram *Memory) getHitRate() float64 {
 	return float64(hits) / float64(total) * 100
 }
 
-// getMemoryUsage retrieves memory usage information.
-// getMemoryUsage 获取内存使用情况。
+// GetMemoryUsage 获取内存使用情况
 func (ram *Memory) getMemoryUsage() map[string]any {
 	return map[string]any{
 		"total_bytes": atomic.LoadInt64(&ram.stats.totalSize),
@@ -530,10 +451,8 @@ func (ram *Memory) getMemoryUsage() map[string]any {
 	}
 }
 
-// cleanupExpired cleans up an expired item.
-// cleanupExpired 清理过期项。
-// Improvement: Asynchronous cleanup to reduce lock contention.
-// 改进：异步清理，减少锁竞争。
+// CleanupExpired 清理过期项
+// 改进：异步清理，减少锁竞争
 func (ram *Memory) cleanupExpired(key string) {
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
@@ -548,8 +467,7 @@ func (ram *Memory) cleanupExpired(key string) {
 	}
 }
 
-// CleanupAllExpired cleans up all expired items.
-// CleanupAllExpired 清理所有过期项。
+// CleanupAllExpired 清理所有过期项
 func (ram *Memory) CleanupAllExpired() int {
 	ram.mutex.Lock()
 	defer ram.mutex.Unlock()
@@ -570,8 +488,7 @@ func (ram *Memory) CleanupAllExpired() int {
 	return cleaned
 }
 
-// GetKeys retrieves all keys (for debugging and monitoring).
-// GetKeys 获取所有键（用于调试和监控）。
+// GetKeys 获取所有键（用于调试和监控）
 func (ram *Memory) GetKeys() []string {
 	ram.mutex.RLock()
 	defer ram.mutex.RUnlock()
@@ -584,11 +501,9 @@ func (ram *Memory) GetKeys() []string {
 	return keys
 }
 
-// GetKeysByPattern retrieves a list of keys matching the pattern (simple implementation).
-// GetKeysByPattern 根据模式获取键列表（简单实现）。
+// GetKeysByPattern 根据模式获取键列表（简单实现）
 func (ram *Memory) GetKeysByPattern(pattern string) []string {
-	// Simplified implementation, can use regex in actual projects.
-	// 简化实现，实际项目中可以使用正则表达式。
+	// 简化实现，实际项目中可以使用正则表达式
 	keys := ram.GetKeys()
 	if pattern == "*" || pattern == "" {
 		return keys
@@ -604,8 +519,7 @@ func (ram *Memory) GetKeysByPattern(pattern string) []string {
 	return matched
 }
 
-// estimateSize estimates data size (simplified implementation).
-// estimateSize 估算数据大小（简化实现）。
+// estimateSize 估算数据大小（简化实现）
 func (ram *Memory) estimateSize(value any) int64 {
 	switch v := value.(type) {
 	case string:
@@ -619,8 +533,7 @@ func (ram *Memory) estimateSize(value any) int64 {
 	case bool:
 		return 1
 	default:
-		// For complex types, return an estimated value.
-		// 对于复杂类型，返回一个估算值。
+		// 对于复杂类型，返回一个估算值
 		return 64
 	}
 }
